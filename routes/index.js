@@ -13,14 +13,15 @@ router.get('/', async (ctx, next) => {
     await ctx.render('pages/index', {
       social: social,
       skills: skills,
-      products: products
+      products: products,
+      msgemail: ctx.flash('msgemail')[0]
     })
   } catch(err) {
     console.log(err)
   }
 })
 
-router.post('/', koaBody(), async (ctx, next) => {
+router.post('/', async (ctx, next) => {
   try {
     const {name, email, message } = ctx.request.body
     db.get('feedback')
@@ -30,7 +31,7 @@ router.post('/', koaBody(), async (ctx, next) => {
         message: message
       })
       .write()
-      //   req.flash('msgemail', 'Sending was successful')
+        ctx.flash('msgemail', 'Sending was successful')
     ctx.redirect('/')
   } catch(err) {
     console.log(err)
@@ -43,21 +44,21 @@ router.get('/login', async (ctx, next) => {
     let social = db.get('social').value()
     await ctx.render('pages/login', {
       social: social,
-      // msglogin: ctx.flash('msglogin')[0]
+      msglogin: ctx.flash('msglogin')[0]
     })
   } catch(err) {
     console.log(err)
   }
 })
 
-router.post('/login', koaBody(), async (ctx, next) => {
+router.post('/login', async (ctx, next) => {
   try {
     const { email, password } = ctx.request.body
     if(email === process.env.EMAIL && password === process.env.PASS) {
-        // req.flash('msglogin', 'Authorization was successful')
+        ctx.flash('msglogin', 'Authorization was successful')
         ctx.redirect('/admin')
     } else {
-      // ctx.flash('msglogin', 'Wrong email or password')
+      ctx.flash('msglogin', 'Wrong email or password')
       ctx.redirect('/login')
     }
   } catch(err) {
@@ -68,19 +69,16 @@ router.post('/login', koaBody(), async (ctx, next) => {
 // // Admin page
 router.get('/admin', async (ctx, next) => {
   try {
-    await ctx.render('pages/admin')
+    await ctx.render('pages/admin', {
+      msgskill: ctx.flash('msgskill')[0],
+      msgfile: ctx.flash('msgfile')[0]
+    })
   } catch(err) {
     console.log(err)
   }
 })
-// router.get('/admin', (req, res, next) => {
-//   res.render('pages/admin', {
-//     msgskill: req.flash('msgskill')[0],
-//     msgfile: req.flash('msgfile')[0]
-//   });
-// });
 
-router.post('/admin/skills', koaBody(), async (ctx, next) => {
+router.post('/admin/skills', async (ctx, next) => {
   try {
     const { age, concerts, cities, years } = ctx.request.body
     if(age !=='') {
@@ -107,7 +105,7 @@ router.post('/admin/skills', koaBody(), async (ctx, next) => {
         .assign({number: Number(years)})
         .write()
     }
-    // req.flash('msgskill', 'Skills was changed')
+    ctx.flash('msgskill', 'Skills was changed')
     ctx.redirect('/admin')
   } catch(err) {
     console.log(err)
@@ -117,19 +115,20 @@ router.post('/admin/skills', koaBody(), async (ctx, next) => {
 router.post('/admin/upload', async (ctx, next) => {
   try {
     await koaBody
-    const { name, price } = ctx.request.body
+    const { name, price } = ctx.request.body,
+      truePath = ctx.request.files.photo.path
     if(ctx.request.files !== undefined && name !=='' && price !=='') {
       db.get('products')
         .push({
-          src: ctx.request.files.photo.path,
+          src: `./${truePath.split('\\').slice(1).join('/')}`,
           name: name,
           price: price
         })
         .write()
-      // req.flash('msgfile', 'Product was uploaded successfuly')
+      ctx.flash('msgfile', 'Product was uploaded successfuly')
       ctx.redirect('/admin')
     } else {
-      // req.flash('msgfile', 'You must select a file and fill in all the fields')
+      ctx.flash('msgfile', 'You must select a file and fill in all the fields')
       ctx.redirect('/admin')
     }
   } catch(err) {
